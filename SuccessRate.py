@@ -25,9 +25,15 @@ def successrate(file_name, groundtruth, changemap_dict):
         rate[changemap_key + '_fp'] = fp
         fn = np.count_nonzero(diff_image == 255)
         rate[changemap_key + '_fn'] = fn
-        precision = tp / (tp+fp)
+        if tp+fp != 0:
+            precision = tp / (tp+fp)
+        else:
+            precision = 0
         rate[changemap_key + '_precision'] = precision
-        recall = tp / (tp+fn)
+        if tp+fn != 0:
+            recall = tp / (tp+fn)
+        else:
+            recall = 0
         rate[changemap_key + '_recall'] = recall
         acc = (tp+tn) / (tp+tn+fp+fn)
         rate[changemap_key + '_accuracy'] = acc
