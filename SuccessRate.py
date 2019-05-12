@@ -1,33 +1,42 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
-from collections import Counter
-from scipy.misc import imread, imresize, imsave
+import pandas as pd
 
-def successrate(groundtruth, changemap):
-    groundtruth_copy = groundtruth.copy()
-    changemap_copy = changemap.copy()
-    # Resize Ground Truth Image according to Change Map Image
-    groundtruth_copy = cv2.resize(groundtruth_copy, (changemap_copy.shape[1], changemap_copy.shape[0]))
-    # Force Ground Truth Image to have either 0 or 255 as pixel value
-    groundtruth_copy_bin = cv2.threshold(groundtruth_copy, 1, 255, cv2.THRESH_BINARY)[1]
-    # Convert Images to Float
-    groundtruth_copy_bin = np.float32(groundtruth_copy_bin)
-    changemap_copy = np.float32(changemap_copy)
-    # Get Image Difference
-    diff_image = (groundtruth_copy_bin - changemap_copy)
-    tptn = np.count_nonzero(diff_image == 0)
-    fp = np.count_nonzero(diff_image == -255)
-    fn = np.count_nonzero(diff_image == 255)
-    # Compute for Success Rate
-    success_rate = tptn / (tptn + fp + fn)
-    return success_rate
+def successrate(file_name, groundtruth, changemap_dict):    
+    rate = pd.DataFrame({'scene_view': [file_name]})
 
-# Success Rates below using Scene000_View00 (No Shadow)
-
-successrate(groundtruth,changemap) # returns 0.9693349296819669
-successrate(groundtruth,cleanchangemap) # returns 0.9912903443391454
-successrate(groundtruth,cleanchangemap_clearborder) # returns 0.9982441570267444
-
+    for changemap_key in changemap_dict.keys():
+        changemap = changemap_dict.get(changemap_key)
+        # Resize Ground Truth Image according to Change Map Image
+        groundtruth = cv2.resize(groundtruth, (changemap.shape[1], changemap.shape[0]))
+        # Force Ground Truth Image to have either 0 or 255 as pixel value
+        groundtruth_bin = cv2.threshold(groundtruth, 1, 255, cv2.THRESH_BINARY)[1]
+        # Convert Images to Float
+        groundtruth_bin = np.float32(groundtruth_bin)
+        changemap = np.float32(changemap)
+        # Get Image Difference
+        diff_image = (groundtruth_bin - changemap)
+        tptn = np.count_nonzero(diff_image == 0)
+        tp = np.count_nonzero(groundtruth[diff_image == 0])
+        rate[changemap_key + '_tp'] = tp
+        tn = tptn - tp
+        rate[changemap_key + '_tn'] = tn
+        fp = np.count_nonzero(diff_image == -255)
+        rate[changemap_key + '_fp'] = fp
+        fn = np.count_nonzero(diff_image == 255)
+        rate[changemap_key + '_fn'] = fn
+        precision = tp / (tp+fp)
+        rate[changemap_key + '_precision'] = precision
+        recall = tp / (tp+fn)
+        rate[changemap_key + '_recall'] = recall
+        acc = (tp+tn) / (tp+tn+fp+fn)
+        rate[changemap_key + '_accuracy'] = acc
+        
+    try:
+        metrics = pd.read_csv('metrics.csv')
+    except:
+        metrics = pd.DataFrame()
+    
+    metrics = metrics.append(rate)
+    metrics = metrics.drop_duplicates('scene_view')
+    metrics.to_csv('metrics.csv', index=False)

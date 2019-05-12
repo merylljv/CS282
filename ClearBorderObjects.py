@@ -1,10 +1,5 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
-from collections import Counter
-from scipy.misc import imread, imresize, imsave
 
 def clearborderobjects(imgBW, radius):
     # Given a black and white image, first find all of its contours
@@ -31,6 +26,3 @@ def clearborderobjects(imgBW, radius):
     for idx in contourList:
         cv2.drawContours(imgBWcopy, contours, idx, (0,0,0), -1)
     return imgBWcopy
-
-cleanchangemap_clearborder = clearborderobjects(cleanchangemap,10)
-cv2.imshow('Clean Change Map (Without Border Objects)',cleanchangemap_clearborder)
